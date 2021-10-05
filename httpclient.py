@@ -42,12 +42,11 @@ def main():
     # this resource request should result in "chunked" data transfer
     get_http_resource('http://www.httpvshttps.com/',
                       'index.html')
-    
+
     # HTTPS example. (Just for fun.)
     # get_http_resource('https://www.httpvshttps.com/', 'https_index.html')
 
     # If you find fun examples of chunked or Content-Length pages, please share them with us!
-
 
 
 def get_http_resource(url, file_name):
@@ -70,7 +69,7 @@ def get_http_resource(url, file_name):
         use_https = False
         protocol = 'http'
         default_port = 80
-    url_match = re.search(protocol+'://([^/:]*)(:\d*)?(/.*)', url)
+    url_match = re.search(protocol + '://([^/:]*)(:\d*)?(/.*)', url)
     url_match_groups = url_match.groups() if url_match else []
     #    print 'url_match_groups=',url_match_groups
     if len(url_match_groups) == 3:
@@ -78,7 +77,7 @@ def get_http_resource(url, file_name):
         host_port = int(url_match_groups[1][1:]) if url_match_groups[1] else default_port
         host_resource = url_match_groups[2]
         print('host name = {0}, port = {1}, resource = {2}'.
-                format(host_name, host_port, host_resource))
+              format(host_name, host_port, host_resource))
         status_string = do_http_exchange(use_https, host_name.encode(), host_port,
                                          host_resource.encode(), file_name)
         print('get_http_resource: URL="{0}", status="{1}"'.format(url, status_string))
@@ -102,11 +101,41 @@ def do_http_exchange(use_https, host, port, resource, file_name):
     :return: the status code
     :rtype: int
     """
- 
     return 500  # Replace this "server error" with the actual status code
+
 
 # Define additional functions here as necessary
 # Don't forget docstrings and :author: tags
+
+def parse_chunked_response(listen_socket):
+
+    pass
+
+
+def read_line(tcp_socket):
+    byte_message = b''
+
+    while byte_holder != b'\x0a':
+        byte_message += byte_holder
+        byte_holder = next_byte(tcp_socket)
+    return byte_message
+
+
+def next_byte(data_socket):
+    """
+    Read the next byte from the socket data_socket.
+
+    Read the next byte from the sender, received over the network.
+    If the byte has not yet arrived, this method blocks (waits)
+      until the byte arrives.
+    If the sender is done sending and is waiting for your response, this method blocks indefinitely.
+
+    :param data_socket: The socket to read from. The data_socket argument should be an open tcp
+                        data connection (either a client socket or a server data socket), not a tcp
+                        server's listening socket.
+    :return: the next byte, as a bytes object with a single byte in it
+    """
+    return data_socket.recv(1)
 
 
 main()
