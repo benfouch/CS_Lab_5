@@ -114,6 +114,7 @@ def parse_chunked_response(listen_socket):
 
 def read_line(tcp_socket):
     byte_message = b''
+    byte_holder = b''
 
     while byte_holder != b'\x0a':
         byte_message += byte_holder
