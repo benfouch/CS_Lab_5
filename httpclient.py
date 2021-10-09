@@ -109,7 +109,17 @@ def do_http_exchange(use_https, host, port, resource, file_name):
 
 def parse_chunked_response(listen_socket):
 
-    pass
+    body = b''
+    size_byte = next_byte(listen_socket)
+    size = b''
+    while not int(size.decode('ASCII'), 16) == 0:
+        while size_byte != b'\r':
+            size += size_byte
+            size_byte = next_byte(listen_socket)
+        next_byte(listen_socket)
+        for i in range(0, int(size.decode('ASCII'), 16)):
+            body += next_byte(listen_socket)
+    return body
 
 
 def read_line(tcp_socket):
@@ -119,7 +129,7 @@ def read_line(tcp_socket):
     while byte_holder != b'\x0a':
         byte_message += byte_holder
         byte_holder = next_byte(tcp_socket)
-    return byte_message
+    return byte_message.strip(b'\x0d\x0a')
 
 
 def next_byte(data_socket):
