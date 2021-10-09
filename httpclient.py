@@ -106,6 +106,26 @@ def do_http_exchange(use_https, host, port, resource, file_name):
 
 # Define additional functions here as necessary
 # Don't forget docstrings and :author: tags
+def read_status_line(listen_socket):
+
+    byte_holder = next_byte(listen_socket)
+    version = b''
+    status = b''
+    desc = b''
+    while byte_holder != b' ':
+        version += byte_holder
+        byte_holder = next_byte(listen_socket)
+    byte_holder = next_byte(listen_socket)
+    while byte_holder != b' ':
+        status += byte_holder
+        byte_holder = next_byte(listen_socket)
+    byte_holder = next_byte(listen_socket)
+    while not desc.__contains__(b'\r\n'):
+        desc += byte_holder
+        byte_holder = next_byte(listen_socket)
+    desc = desc.decode('ASCII')[0:len(desc.decode('ASCII')) - 2].encode('ASCII')
+    return status
+
 
 def parse_chunked_response(listen_socket):
 
