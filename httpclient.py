@@ -23,11 +23,7 @@ Summary: (Summarize your experience with the lab, what you learned, what you lik
 
 """
 
-# import the "socket" module -- not using "from socket import *" in order to selectively use items
-# with "socket." prefix
 import socket
-
-# import the "regular expressions" module
 import re
 
 
@@ -36,12 +32,11 @@ def main():
     Tests the client on a variety of resources
     """
 
-    # These resource request should result in "Content-Length" data transfer
+    # Content-Length
     get_http_resource('http://www.httpvshttps.com/check.png', 'check.png')
 
-    # this resource request should result in "chunked" data transfer
-    get_http_resource('http://www.httpvshttps.com/',
-                      'index.html')
+    # chunked
+    get_http_resource('http://www.httpvshttps.com/', 'index.html')
 
     # HTTPS example. (Just for fun.)
     # get_http_resource('https://www.httpvshttps.com/', 'https_index.html')
@@ -71,15 +66,13 @@ def get_http_resource(url, file_name):
         default_port = 80
     url_match = re.search(protocol + '://([^/:]*)(:\d*)?(/.*)', url)
     url_match_groups = url_match.groups() if url_match else []
-    #    print 'url_match_groups=',url_match_groups
+    # print 'url_match_groups=',url_match_groups
     if len(url_match_groups) == 3:
         host_name = url_match_groups[0]
         host_port = int(url_match_groups[1][1:]) if url_match_groups[1] else default_port
         host_resource = url_match_groups[2]
-        print('host name = {0}, port = {1}, resource = {2}'.
-              format(host_name, host_port, host_resource))
-        status_string = do_http_exchange(use_https, host_name.encode(), host_port,
-                                         host_resource.encode(), file_name)
+        print('host name = {0}, port = {1}, resource = {2}'.format(host_name, host_port, host_resource))
+        status_string = do_http_exchange(use_https, host_name.encode(), host_port, host_resource.encode(), file_name)
         print('get_http_resource: URL="{0}", status="{1}"'.format(url, status_string))
     else:
         print('get_http_resource: URL parse failed, request not sent')
@@ -101,11 +94,120 @@ def do_http_exchange(use_https, host, port, resource, file_name):
     :return: the status code
     :rtype: int
     """
-    return 500  # Replace this "server error" with the actual status code
+    # Send Message
+    tcp_socket = send_request(host, port, resource)
+    # Get Response Code
+    response_code = get_response_code(tcp_socket)
+    # Get the response type and message length (-1 for chunked)
+    response_type, length = get_response_type(tcp_socket)
 
+    # Bring the socket receiver to the start of the body, past all the rest of the KV pairs
+    get_to_body(tcp_socket)
+    # Gets the body response from the socket
+    if response_type == "Chunked":
+        body = read_chunks(tcp_socket)
+    elif response_type == "Length":
+        body = read_length(tcp_socket, length)
+
+    # Save to File
+    save_to_file(file_name, body)
+
+    tcp_socket.close()
+    return response_code
 
 # Define additional functions here as necessary
 # Don't forget docstrings and :author: tags
+
+
+def save_to_file(file_name, body):
+    file = open(file_name, 'w+b')
+    file.write(body)
+    file.close()
+
+
+def send_request(host, port, resource):
+    space = b'\x20'
+    request_type = b'GET'
+    version = b'HTTP/1.1'
+    key = b'host'
+    value = host
+    crlf = b'\r\n'
+
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_socket.connect((host, port))
+
+    message = request_type + space + resource + space + version + crlf + key + b':' + value + crlf + crlf
+    tcp_socket.sendall(message)
+    return tcp_socket
+
+
+def read_chunks(socket):
+    end = False
+    line = ""
+    while not end:
+
+        # Get data size
+        while not line.__contains__("\r\n"):
+            temp_byte = socket.recv(1)
+            line += temp_byte.decode("ASCII")
+        end = line == "\r\n"
+
+        if not end:
+            size = int(line.split("\r\n")[0], 16)
+            print(size)
+            data = socket.recv(int(size))
+        line = ""
+
+    return data
+
+
+def read_length(socket, length):
+    return socket.recv(int(length))
+
+
+def get_to_body(socket):
+    end = False
+    line = ""
+    while not end:
+        while not line.__contains__("\r\n"):
+            temp_byte = socket.recv(1)
+            line += temp_byte.decode("ASCII")
+        end = line == "\r\n"
+        line = ""
+
+
+def get_response_type(socket):
+    line = ""
+    temp_byte = socket.recv(1)
+    line += temp_byte.decode("ASCII")
+    found = False
+    while not found:
+        while not line.__contains__("\r\n"):
+            temp_byte = socket.recv(1)
+            line += temp_byte.decode("ASCII")
+
+        if line.startswith("Content-Length"):
+            return "Length", line.split(' ')[1]
+            found = True
+        if line.startswith("Transfer-Encoding: chunked"):
+            return "Chunked", -1
+            found = True
+        if line == "\r\n":
+            return "Not Found"
+        line = ""
+
+    return "Not found"
+
+
+def get_response_code(socket):
+    temp_byte = socket.recv(1)
+    while temp_byte != b'\x20':
+        temp_byte = socket.recv(1)
+
+    return socket.recv(3).decode("ASCII")
+
+
+'''
 def read_status_line(listen_socket):
 
     byte_holder = next_byte(listen_socket)
@@ -150,17 +252,16 @@ def read_line(tcp_socket):
         byte_message += byte_holder
         byte_holder = next_byte(tcp_socket)
     return byte_message.strip(b'\x0d\x0a')
+'''
 
 
 def next_byte(data_socket):
     """
     Read the next byte from the socket data_socket.
-
     Read the next byte from the sender, received over the network.
     If the byte has not yet arrived, this method blocks (waits)
       until the byte arrives.
     If the sender is done sending and is waiting for your response, this method blocks indefinitely.
-
     :param data_socket: The socket to read from. The data_socket argument should be an open tcp
                         data connection (either a client socket or a server data socket), not a tcp
                         server's listening socket.
@@ -170,3 +271,4 @@ def next_byte(data_socket):
 
 
 main()
+
