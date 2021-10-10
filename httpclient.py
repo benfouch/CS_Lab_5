@@ -1,22 +1,25 @@
 """
 - NOTE: REPLACE 'N' Below with your section, year, and lab number
-- CS2911 - 0NN
-- Fall 202N
-- Lab N
+- CS2911 - 011
+- Fall 2021
+- Lab 5
 - Names:
-  - 
-  - 
+  - Ben Fouch
+  - Nathan Cernik
+  - Aidan Regan
 
 An HTTP client
 
 Introduction: (Describe the lab in your own words)
-
-
-
+In Lab 5, we were tasked with sending and receiving an http message resource from the network,
+and then taking that resource and writing it into a file.
 
 Summary: (Summarize your experience with the lab, what you learned, what you liked, what you
    disliked, and any suggestions you have for improvement)
-
+Our experience with this lab was pretty good.  It started out a little bit difficult to visualize,
+but after we started writing the code itself, everything fell into place.  We all agreed that
+pulling things off of the network has been the most interesting part of this lab and some of
+the previous labs.
 
 
 
@@ -118,17 +121,37 @@ def do_http_exchange(use_https, host, port, resource, file_name):
     except socket.error:
         print('Resource Retrieval Failed.')
 
+
 # Define additional functions here as necessary
 # Don't forget docstrings and :author: tags
 
 
 def save_to_file(file_name, body):
+    """
+    Save the data of the http response to a file
+
+    :param file_name: name of the file
+    :param body: body of the response message
+    :return: void
+    """
     file = open(file_name, 'w+b')
     file.write(body)
     file.close()
 
 
 def send_request(host, port, resource):
+    """
+    Send an http request to a specified hostname/IP and port
+
+    :param host: the ASCII domain name or IP address of the server machine (i.e., host) to
+           connect to
+    :param port: port number to connect to on server host
+    :param resource: the ASCII path/name of resource to get. This is everything in the URL
+           after the domain name, including the first /.
+    :raise: socket.error if hostname is invalid
+    :return the tcp socket for sending and receiving
+    :rtype: socket
+    """
     space = b'\x20'
     request_type = b'GET'
     version = b'HTTP/1.1'
@@ -146,57 +169,87 @@ def send_request(host, port, resource):
         print('Invalid Hostname.')
         raise socket.error
 
-def read_chunks(socket):
+
+def read_chunks(tcp_socket):
+    """
+    reads the body of a chunked response
+
+    :param tcp_socket: socket used for sending and receiving
+    :return: data from the file
+    :rtype: bytes
+    """
+    data = b''
     end = False
     line = ""
     while not end:
 
         # Get data size
         while not line.__contains__("\r\n"):
-            temp_byte = socket.recv(1)
+            temp_byte = tcp_socket.recv(1)
             line += temp_byte.decode("ASCII")
         end = line == "\r\n"
 
         if not end:
             size = int(line.split("\r\n")[0], 16)
             print(size)
-            data = socket.recv(int(size))
+            data = tcp_socket.recv(int(size))
         line = ""
 
     return data
 
 
-def read_length(socket, length):
-    return socket.recv(int(length))
+def read_length(tcp_socket, length):
+    """
+    reads the next length bytes of the file
+
+    :param tcp_socket: socket for sending and receiving
+    :param length: length of the body
+    :return: next length bytes of the file
+    :rtype: bytes
+    """
+    return tcp_socket.recv(int(length))
 
 
-def get_to_body(socket):
+def get_to_body(tcp_socket):
+    """
+    Gets to the body of the file after reading the length or encoding type
+
+    :param tcp_socket: socket for sending and receiving
+    :return: void
+    """
     end = False
     line = ""
     while not end:
         while not line.__contains__("\r\n"):
-            temp_byte = socket.recv(1)
+            temp_byte = tcp_socket.recv(1)
             line += temp_byte.decode("ASCII")
         end = line == "\r\n"
         line = ""
 
 
-def get_response_type(socket):
+def get_response_type(tcp_socket):
+    """
+    gets the response type of the response
+
+    :param tcp_socket: socket for sending and receiving data
+    :return: response transfer encoding
+    :rtype: str
+    """
     line = ""
-    temp_byte = socket.recv(1)
+    temp_byte = tcp_socket.recv(1)
     line += temp_byte.decode("ASCII")
     found = False
     while not found:
         while not line.__contains__("\r\n"):
-            temp_byte = socket.recv(1)
+            temp_byte = tcp_socket.recv(1)
             line += temp_byte.decode("ASCII")
 
         if line.startswith("Content-Length"):
+            found = True
             return "Length", line.split(' ')[1]
-            found = True
         if line.startswith("Transfer-Encoding: chunked"):
-            return "Chunked", -1
             found = True
+            return "Chunked", -1
         if line == "\r\n":
             return "Not Found"
         line = ""
@@ -204,12 +257,19 @@ def get_response_type(socket):
     return "Not found"
 
 
-def get_response_code(socket):
-    temp_byte = socket.recv(1)
-    while temp_byte != b'\x20':
-        temp_byte = socket.recv(1)
+def get_response_code(tcp_socket):
+    """
+    Gets the message response code
 
-    return socket.recv(3).decode("ASCII")
+    :param tcp_socket: socket for sending and receiving
+    :return: 3 character response code
+    :rtype: str
+    """
+    temp_byte = tcp_socket.recv(1)
+    while temp_byte != b'\x20':
+        temp_byte = tcp_socket.recv(1)
+
+    return tcp_socket.recv(3).decode("ASCII")
 
 
 '''
@@ -276,4 +336,3 @@ def next_byte(data_socket):
 
 
 main()
-
