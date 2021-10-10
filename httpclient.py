@@ -95,25 +95,28 @@ def do_http_exchange(use_https, host, port, resource, file_name):
     :rtype: int
     """
     # Send Message
-    tcp_socket = send_request(host, port, resource)
-    # Get Response Code
-    response_code = get_response_code(tcp_socket)
-    # Get the response type and message length (-1 for chunked)
-    response_type, length = get_response_type(tcp_socket)
+    try:
+        tcp_socket = send_request(host, port, resource)
+        # Get Response Code
+        response_code = get_response_code(tcp_socket)
+        # Get the response type and message length (-1 for chunked)
+        response_type, length = get_response_type(tcp_socket)
 
-    # Bring the socket receiver to the start of the body, past all the rest of the KV pairs
-    get_to_body(tcp_socket)
-    # Gets the body response from the socket
-    if response_type == "Chunked":
-        body = read_chunks(tcp_socket)
-    elif response_type == "Length":
-        body = read_length(tcp_socket, length)
+        # Bring the socket receiver to the start of the body, past all the rest of the KV pairs
+        get_to_body(tcp_socket)
+        # Gets the body response from the socket
+        if response_type == "Chunked":
+            body = read_chunks(tcp_socket)
+        elif response_type == "Length":
+            body = read_length(tcp_socket, length)
 
-    # Save to File
-    save_to_file(file_name, body)
+        # Save to File
+        save_to_file(file_name, body)
 
-    tcp_socket.close()
-    return response_code
+        tcp_socket.close()
+        return response_code
+    except socket.error:
+        print('Resource Retrieval Failed.')
 
 # Define additional functions here as necessary
 # Don't forget docstrings and :author: tags
@@ -134,12 +137,14 @@ def send_request(host, port, resource):
     crlf = b'\r\n'
 
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp_socket.connect((host, port))
-
-    message = request_type + space + resource + space + version + crlf + key + b':' + value + crlf + crlf
-    tcp_socket.sendall(message)
-    return tcp_socket
-
+    try:
+        tcp_socket.connect((host, port))
+        message = request_type + space + resource + space + version + crlf + key + b':' + value + crlf + crlf
+        tcp_socket.sendall(message)
+        return tcp_socket
+    except socket.error:
+        print('Invalid Hostname.')
+        raise socket.error
 
 def read_chunks(socket):
     end = False
