@@ -84,6 +84,10 @@ def get_http_resource(url, file_name):
 def do_http_exchange(use_https, host, port, resource, file_name):
     """
     Get an HTTP resource from a server
+    :author:
+        - Ben Fouch
+        - Nathan Cernik
+        - Aidan Regan
 
     :param use_https: True if HTTPS should be used. False if just HTTP should be used.
            You can ignore this argument unless you choose to implement the just-for-fun part of the
@@ -129,6 +133,8 @@ def do_http_exchange(use_https, host, port, resource, file_name):
 def save_to_file(file_name, body):
     """
     Save the data of the http response to a file
+    :author:
+        - Ben Fouch
 
     :param file_name: name of the file
     :param body: body of the response message
@@ -142,6 +148,9 @@ def save_to_file(file_name, body):
 def send_request(host, port, resource):
     """
     Send an http request to a specified hostname/IP and port
+    :author:
+        - Ben Fouch
+        - Nathan Cernik
 
     :param host: the ASCII domain name or IP address of the server machine (i.e., host) to
            connect to
@@ -173,6 +182,9 @@ def send_request(host, port, resource):
 def read_chunks(tcp_socket):
     """
     reads the body of a chunked response
+    :author:
+        - Ben Fouch
+        - Nathan Cernik
 
     :param tcp_socket: socket used for sending and receiving
     :return: data from the file
@@ -201,6 +213,9 @@ def read_chunks(tcp_socket):
 def read_length(tcp_socket, length):
     """
     reads the next length bytes of the file
+    :author:
+        - Ben Fouch
+        - Aidan Regan
 
     :param tcp_socket: socket for sending and receiving
     :param length: length of the body
@@ -213,6 +228,8 @@ def read_length(tcp_socket, length):
 def get_to_body(tcp_socket):
     """
     Gets to the body of the file after reading the length or encoding type
+    :author:
+        - Ben Fouch
 
     :param tcp_socket: socket for sending and receiving
     :return: void
@@ -230,6 +247,9 @@ def get_to_body(tcp_socket):
 def get_response_type(tcp_socket):
     """
     gets the response type of the response
+    :author:
+        - Ben Fouch
+        - Nathan Cernik
 
     :param tcp_socket: socket for sending and receiving data
     :return: response transfer encoding
@@ -260,6 +280,10 @@ def get_response_type(tcp_socket):
 def get_response_code(tcp_socket):
     """
     Gets the message response code
+    :author:
+        - Ben Fouch
+        - Nathan Cernik
+        - Aidan Regan
 
     :param tcp_socket: socket for sending and receiving
     :return: 3 character response code
